@@ -27,6 +27,7 @@ export function QueryClientProvider({ children, client }) {
 export class QueryClient {
   constructor() {
     this.queries = []
+    this.subscribers = []
   }
 
   getQuery = (options) => {
@@ -39,6 +40,18 @@ export class QueryClient {
     }
 
     return query
+  }
+
+  subscribe = (callback) => {
+    this.subscribers.push(callback)
+
+    return () => {
+      this.subscribers = this.subscribers.filter((d) => d !== callback)
+    }
+  }
+
+  notify = () => {
+    this.subscribers.forEach((cb) => cb())
   }
 }
 
@@ -65,7 +78,37 @@ export function useQuery({ queryKey, queryFn, staleTime, cacheTime }) {
 }
 
 export function ReactQueryDevtools() {
-  return null
+  const client = React.useContext(context)
+  const [, rerender] = React.useReducer((i) => i + 1, 0)
+
+  React.useEffect(() => {
+    return client.subscribe(rerender)
+  })
+
+  return (
+    <div className="bg-black text-white divide-solid divide-y-2 divide-gray-800">
+      {[...client.queries]
+        .sort((a, b) => (a.queryHash > b.queryHash ? 1 : -1))
+        .map((query) => {
+          return (
+            <div key={query.queryHash} className="p-2">
+              {JSON.stringify(query.queryKey, null, 2)} -{' '}
+              <span className="font-bold">
+                {query.state.isFetching ? (
+                  <span className="text-blue-500">fetching</span>
+                ) : !query.subscribers?.length ? (
+                  <span className="text-gray-500">inactive</span>
+                ) : query.state.status === 'success' ? (
+                  <span className="text-green-500">success</span>
+                ) : query.state.status === 'error' ? (
+                  <span className="text-red-500">error</span>
+                ) : null}
+              </span>
+            </div>
+          )
+        })}
+    </div>
+  )
 }
 
 function createQuery(client, { queryKey, queryFn, cacheTime = 5 * 60 * 1000 }) {
@@ -84,6 +127,7 @@ function createQuery(client, { queryKey, queryFn, cacheTime = 5 * 60 * 1000 }) {
     setState: (updater) => {
       query.state = updater(query.state)
       query.subscribers.forEach((subscriber) => subscriber.notify())
+      client.notify()
     },
     subscribe: (subscriber) => {
       query.subscribers.push(subscriber)
@@ -101,6 +145,7 @@ function createQuery(client, { queryKey, queryFn, cacheTime = 5 * 60 * 1000 }) {
     scheduleGC: () => {
       query.gcTimeout = setTimeout(() => {
         client.queries = client.queries.filter((d) => d !== query)
+        client.notify()
       }, cacheTime)
     },
     unscheduleGC: () => {
