@@ -24,7 +24,7 @@ export class QueryClient {
   }
 }
 
-export function useQuery({ queryKey, queryFn }) {
+export function useQuery({ queryKey, queryFn, staleTime }) {
   const client = React.useContext(context)
 
   const [, rerender] = React.useReducer((i) => i + 1, 0)
@@ -34,6 +34,7 @@ export function useQuery({ queryKey, queryFn }) {
     observerRef.current = createQueryObserver(client, {
       queryKey,
       queryFn,
+      staleTime,
     })
   }
 
@@ -84,6 +85,7 @@ function createQuery(client, { queryKey, queryFn }) {
             query.setState((old) => ({
               ...old,
               status: 'success',
+              lastUpdated: Date.now(),
               data,
             }))
           } catch (error) {
@@ -109,7 +111,7 @@ function createQuery(client, { queryKey, queryFn }) {
   return query
 }
 
-function createQueryObserver(client, { queryKey, queryFn }) {
+function createQueryObserver(client, { queryKey, queryFn, staleTime = 0 }) {
   const query = client.getQuery({ queryKey, queryFn })
 
   const observer = {
@@ -119,9 +121,17 @@ function createQueryObserver(client, { queryKey, queryFn }) {
       observer.notify = callback
       const unsubscribe = query.subscribe(observer)
 
-      query.fetch()
+      observer.fetch()
 
       return unsubscribe
+    },
+    fetch: () => {
+      if (
+        !query.state.lastUpdated ||
+        Date.now() - query.state.lastUpdated > staleTime
+      ) {
+        query.fetch()
+      }
     },
   }
 
