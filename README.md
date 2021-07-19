@@ -1,6 +1,8 @@
-# Getting Started with Create React App
+# React Query Lite
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+[React Query](https://react-query.tanstack.com/) is a Data Synchronization library for Fetching, Caching and Updating. And the data can be returning from REST, GraphQL and Promise. It implements the Stale-While-Revalidate mechanism.
+
+This project implements a lite version of react query following the [Let's Build React Query in 150 Lines of Code!](https://portal.gitnation.org/contents/lets-build-react-query-in-150-lines-of-code) - Tanner Linsley, React Summit Remote Edition 2021.
 
 ## Available Scripts
 
