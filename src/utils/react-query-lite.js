@@ -3,6 +3,24 @@ import * as React from 'react'
 const context = React.createContext()
 
 export function QueryClientProvider({ children, client }) {
+  React.useEffect(() => {
+    const onFocus = () => {
+      client.queries.forEach((query) => {
+        query.subscribers.forEach((subscriber) => {
+          subscriber.fetch()
+        })
+      })
+    }
+
+    window.addEventListener('visibilitychange', onFocus, false)
+    window.addEventListener('focus', onFocus, false)
+
+    return () => {
+      window.removeEventListener('visibilitychange', onFocus)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [client])
+
   return <context.Provider value={client}>{children}</context.Provider>
 }
 
