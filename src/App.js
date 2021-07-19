@@ -68,6 +68,7 @@ function usePosts() {
         }))
       ),
     staleTime: 3000,
+    cacheTime: 5000,
   })
 }
 
@@ -76,6 +77,7 @@ function usePost(postId) {
     queryKey: ['post', postId],
     queryFn: () => sleep(1000).then(() => posts[postId]),
     staleTime: 3000,
+    cacheTime: 5000,
   })
 }
 

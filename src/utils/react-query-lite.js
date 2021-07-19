@@ -24,7 +24,7 @@ export class QueryClient {
   }
 }
 
-export function useQuery({ queryKey, queryFn, staleTime }) {
+export function useQuery({ queryKey, queryFn, staleTime, cacheTime }) {
   const client = React.useContext(context)
 
   const [, rerender] = React.useReducer((i) => i + 1, 0)
@@ -35,6 +35,7 @@ export function useQuery({ queryKey, queryFn, staleTime }) {
       queryKey,
       queryFn,
       staleTime,
+      cacheTime,
     })
   }
 
@@ -49,12 +50,13 @@ export function ReactQueryDevtools() {
   return null
 }
 
-function createQuery(client, { queryKey, queryFn }) {
+function createQuery(client, { queryKey, queryFn, cacheTime = 5 * 60 * 1000 }) {
   let query = {
     queryKey,
     queryHash: JSON.stringify(queryKey),
     promise: null,
     subscribers: [],
+    gcTimeout: null,
     state: {
       status: 'loading',
       isFetching: true,
@@ -68,9 +70,23 @@ function createQuery(client, { queryKey, queryFn }) {
     subscribe: (subscriber) => {
       query.subscribers.push(subscriber)
 
+      query.unscheduleGC()
+
       return () => {
         query.subscribers = query.subscribers.filter((d) => d !== subscriber)
+
+        if (!query.subscribers.length) {
+          query.scheduleGC()
+        }
       }
+    },
+    scheduleGC: () => {
+      query.gcTimeout = setTimeout(() => {
+        client.queries = client.queries.filter((d) => d !== query)
+      }, cacheTime)
+    },
+    unscheduleGC: () => {
+      clearTimeout(query.gcTimeout)
     },
     fetch: () => {
       if (!query.promise) {
@@ -111,8 +127,11 @@ function createQuery(client, { queryKey, queryFn }) {
   return query
 }
 
-function createQueryObserver(client, { queryKey, queryFn, staleTime = 0 }) {
-  const query = client.getQuery({ queryKey, queryFn })
+function createQueryObserver(
+  client,
+  { queryKey, queryFn, staleTime = 0, cacheTime }
+) {
+  const query = client.getQuery({ queryKey, queryFn, cacheTime })
 
   const observer = {
     notify: () => {},
