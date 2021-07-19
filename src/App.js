@@ -1,6 +1,13 @@
 import * as React from 'react'
-import { QueryClient, QueryClientProvider, useQuery } from 'react-query'
-import { ReactQueryDevtools } from 'react-query/devtools'
+// import { QueryClient, QueryClientProvider, useQuery } from 'react-query'
+// import { ReactQueryDevtools } from 'react-query/devtools'
+
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+  ReactQueryDevtools,
+} from './utils/react-query-lite.js'
 
 const queryClient = new QueryClient()
 
